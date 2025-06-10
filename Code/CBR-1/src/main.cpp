@@ -3,14 +3,15 @@
 #include <PID_v1.h>
 #include <I2Cdev.h>
 #include <MPU6050_6Axis_MotionApps20.h>
+#include <Wire.h>
  
 int pwmA = 5;
-int in1A = 3;
-int in2A = 4;
+int in1A = 3; 
+int in2A = 4; 
  
 int pwmB = 6;
-int in1B = 7;
-int in2B = 8;
+int in1B = 8; // i've reversed these
+int in2B = 7; // i've reversed these
 
 int LED2 = 11;
 int LED1 = 12;
@@ -35,14 +36,14 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gra
 
 /*********Tune these 4 values for your BOT*********/
 
-double setpoint = 180; //set the value when the bot is perpendicular to ground using serial monitor. 
+double setpoint = 179.3; //set the value when the bot is perpendicular to ground using serial monitor. 
 
 //#############################################
 //Change those Values according to your Design
 //#############################################
 double Kp = 15;  // Set this first
-double Ki = 200; // Finally set this 
-double Kd = 0.6; // Set this second
+double Ki = 50; // Finally set this 
+double Kd = 0.5; // Set this second
 //#############################################
 
 double input, output;
@@ -70,7 +71,7 @@ void Forward() //Code to rotate the wheel forward
     analogWrite(pwmA, output);
     analogWrite(pwmB, output);
 
-    Serial.print("F"); //Debugging information 
+    //Serial.print("F"); //Debugging information 
 }
 
 void Reverse() //Code to rotate the wheel Backward  
@@ -87,7 +88,7 @@ void Reverse() //Code to rotate the wheel Backward
     analogWrite(pwmA, -1*output);
     analogWrite(pwmB, -1*output);
 
-    Serial.print("R");
+    //Serial.print("R");
 }
 
 void Stop() //Code to stop both the wheels
@@ -104,7 +105,7 @@ void Stop() //Code to stop both the wheels
     analogWrite(pwmA, 0);
     analogWrite(pwmB, 0);
 
-    Serial.print("S");
+    //Serial.print("S");
 }
 
 void setup(){
@@ -120,7 +121,8 @@ void setup(){
   pinMode(LED2,OUTPUT);
 
 
-  //Serial.begin(9600);
+  Serial.begin(115200);
+  Wire.begin();
   
   // initialize device
     Serial.println(F("Initializing I2C devices..."));
@@ -135,10 +137,10 @@ void setup(){
 
     
     // supply your own gyro offsets here, scaled for min sensitivity
-    mpu.setXGyroOffset(220);
-    mpu.setYGyroOffset(76);
-    mpu.setZGyroOffset(-85);
-    mpu.setZAccelOffset(1688); 
+    mpu.setXGyroOffset(-366);
+    mpu.setYGyroOffset(-48);
+    mpu.setZGyroOffset(4);
+    mpu.setZAccelOffset(1334); 
 
       // make sure it worked (returns 0 if so)
     if (devStatus == 0)
@@ -178,15 +180,20 @@ void setup(){
 }
 
 void loop() {
-
   /*
   motorSpeed1 = map(analogRead(ASDASD), 0, 1023, 0, 255);
   motorSpeed2 = map(analogRead(50ASDASD0), 0, 1023, 0, 255);  
     */
 
 // if programming failed, don't try to do anything
-    if (!dmpReady) return;
-
+    if (!dmpReady){
+        Serial.println("dmp not ready");
+        return;
+    }
+    //Serial.println(!mpuInterrupt);
+    //Serial.println(fifoCount);
+    //Serial.println(packetSize);
+    //Serial.println("");
     // wait for MPU interrupt or extra packet(s) available
     while (!mpuInterrupt && fifoCount < packetSize)
     {
@@ -205,6 +212,14 @@ void loop() {
         }
         else //If Bot not falling
         Stop(); //Hold the wheels still
+
+        Serial.print(">");
+        Serial.print("Angle:");
+        Serial.print(input);
+        Serial.print(",");
+        Serial.print("PID:");
+        Serial.print(output);
+        Serial.println();
         
     }
 
@@ -241,7 +256,11 @@ void loop() {
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity); //get value for ypr
 
         input = ypr[1] * 180/M_PI + 180;
-
+        /*
+        if (input < 0) input = 360 + input;
+        */
+        //Serial.println("Angle:");
+        //Serial.println(input);
    }
   
 }
